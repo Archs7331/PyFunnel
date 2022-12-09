@@ -1,4 +1,3 @@
-# ahh py funoo by arx & xplode hh
 import yaml
 import toml
 import requests
@@ -79,7 +78,7 @@ def attack():
         ), 451
     else:
         with open('attacks.log', 'a') as f:
-            f.write(f"{host}:{port} - {duration}s - {method}\n")
+            f.write(f"{key} - {host}:{port} - {duration}s - {method}\n")
         # Check if the specified method is in the list of methods from the config file
         if method in methods:
             # Get the list of URLs for the specified method from the config file
