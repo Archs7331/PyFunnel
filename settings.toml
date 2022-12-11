@@ -1,8 +1,0 @@
-[config]
-keys = ['ilovefemboys1337','fuckudp123']
-maxtime = 1200
-blacklist = [
-    'https://fbi.gov/',
-    'fbi.gov',
-    '.gov'
-]
