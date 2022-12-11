@@ -1,0 +1,12 @@
+methods:
+  HTTPS: # periodic i dont use this to sell it or anything dont kill me it was only for testing
+    - http://api.periodic.gay/api/attack?username=&key=&host=<<host>>&port=<<port>>&time=<<time>>&method=MIX
+    - http://api.periodic.gay/api/attack?username=&key=&host=<<host>>&port=<<port>>&time=<<time>>&method=MIX
+  NFO:
+    - https://google.com/dss1
+    - https://google.com/
+    - https://google.com/
+  DNS:
+    - https://google.com/
+    - https://google.com/
+    - https://google.com/
