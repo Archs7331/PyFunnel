@@ -1,0 +1,11 @@
+config:
+  keys: 
+  - ilovefemboys1337
+  - botnet22
+  - 1234567890a
+  maxtime: 1200
+  blacklist:
+  - .edu
+  - 1.1.1.1
+  - .gov
+  - .mil
